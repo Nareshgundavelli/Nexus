@@ -1,0 +1,4 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Tue Apr 28 07:15:07 UTC 2026
+myapp-1.0.0.jar>=
+myapp-1.0.0.pom>=
