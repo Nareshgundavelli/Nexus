@@ -1,126 +1,175 @@
-# Sonatype Nexus Setup & Maven Artifact Deployment
+# 🚀 Sonatype Nexus Setup & Maven Artifact Deployment on AWS Ubuntu 22.04
 
-## Overview
+# 📌 Project Overview
 
-This project demonstrates a complete hands-on setup of Sonatype Nexus Repository on Ubuntu, integration with Maven, and deployment of both Snapshot and Release artifacts.
+## What is Nexus?
 
-The main objective of this project was to understand how organizations store and manage build artifacts such as JAR and WAR files using Nexus Repository.
+**Sonatype Nexus Repository** is an artifact repository manager used to store, manage, and distribute build artifacts generated from applications.
 
-During this implementation, I installed Nexus, created repositories, configured Maven, deployed artifacts, and resolved real-time issues.
+Artifacts can include:
 
----
+- JAR files
+- WAR files
+- ZIP files
+- Docker Images
+- Shared Internal Libraries
 
-# Objectives
-
-- Install and run Nexus using Docker on Ubuntu
-- Configure Maven credentials using `settings.xml`
-- Create Snapshot and Release repositories in Nexus
-- Build a Java Maven application
-- Deploy Snapshot and Release artifacts to Nexus
-- Troubleshoot real-time deployment issues
+Nexus is widely used in DevOps and CI/CD pipelines to maintain a central repository for application packages.
 
 ---
 
-# Tech Stack
+## Why Do We Use Nexus?
 
-- Ubuntu Linux
-- Java (OpenJDK 17)
-- Apache Maven
-- Docker
-- Sonatype Nexus Repository 3
-- Git & GitHub
+Organizations use Nexus for:
 
----
-
-# Project Architecture
-
-Developer -> GitHub -> Maven Build -> Nexus Repository -> Deployment Server
+- Centralized artifact storage
+- Version management
+- Backup of build files
+- Sharing artifacts across teams
+- Integration with CI/CD tools like Jenkins
+- Faster deployments
+- Dependency management
 
 ---
 
-# Installation Steps
+## Difference Between GitHub and Nexus
 
-## 1. Update Ubuntu Server
+| GitHub | Nexus |
+|--------|-------|
+| Stores source code | Stores build artifacts |
+| Used by developers | Used by DevOps / Build teams |
+| Git version control | Binary repository manager |
+| Code collaboration | Artifact storage & delivery |
+
+---
+
+# ☁️ AWS Server Setup
+
+## Launch EC2 Instance
+
+- OS: Ubuntu Server 22.04
+- Instance Type: t2.micro / t2.small
+- Key Pair: Existing or New Key
+- Storage: Default
+
+---
+
+## Security Group Ports to Allow
+
+| Port | Purpose |
+|------|---------|
+| 22 | SSH Access |
+| 8081 | Nexus UI Access |
+
+---
+
+# 🔐 Connect to Server
 
 ```bash
+ssh -i your-key.pem ubuntu@<public-ip>
+⚙️ System Update
 sudo apt update && sudo apt upgrade -y
-2. Install Java
+☕ Install Java
 sudo apt install openjdk-17-jdk -y
 java -version
-3. Install Docker
+🐳 Install Docker
 sudo apt install docker.io -y
 sudo systemctl enable docker
 sudo systemctl start docker
 docker --version
-4. Run Nexus Using Docker
+📦 Run Nexus Container
 sudo docker run -d \
 --name nexus \
 -p 8081:8081 \
 -v nexus-data:/nexus-data \
 sonatype/nexus3
-5. Get Nexus Admin Password
+
+Check running container:
+
+sudo docker ps
+🌐 Access Nexus in Browser
+
+Open:
+
+http://<AWS-Public-IP>:8081
+
+Ensure port 8081 is allowed in AWS Security Group.
+
+🔑 Get Nexus Username & Password
+Username
+admin
+Password
 sudo docker exec -it nexus cat /nexus-data/admin.password
 
-Access UI:
+Login to Nexus UI using the above credentials.
 
-http://<server-ip>:8081
-Repository Configuration
-
-Create the following repositories in Nexus:
-
-Snapshot Repository
+🗂 Create Repositories in Nexus
+1️⃣ Snapshot Repository
 
 Used for development builds.
 
+Configuration
 Type: maven2 (hosted)
 Name: company-snapshot
 Version Policy: Snapshot
 Deployment Policy: Allow redeploy
 
-Example:
+Example Version:
 
 <version>1.0.0-SNAPSHOT</version>
-Release Repository
+2️⃣ Release Repository
 
-Used for stable production builds.
+Used for production-ready stable builds.
 
+Configuration
 Type: maven2 (hosted)
 Name: company-release
 Version Policy: Release
 Deployment Policy: Allow redeploy
 
-Example:
+Example Version:
 
 <version>1.0.0</version>
-Maven Project Configuration
-pom.xml
+📦 Install Maven
+sudo apt install maven -y
+mvn -version
+🧱 Create Maven Project
+mvn archetype:generate
+cd myapp
+⚙️ Configure pom.xml
+
+Add below section inside <project>:
+
 <distributionManagement>
-  <repository>
-    <id>nexus</id>
-    <url>http://localhost:8081/repository/company-release/</url>
-  </repository>
+    <repository>
+        <id>nexus</id>
+        <url>http://localhost:8081/repository/company-release/</url>
+    </repository>
 
-  <snapshotRepository>
-    <id>nexus</id>
-    <url>http://localhost:8081/repository/company-snapshot/</url>
-  </snapshotRepository>
+    <snapshotRepository>
+        <id>nexus</id>
+        <url>http://localhost:8081/repository/company-snapshot/</url>
+    </snapshotRepository>
 </distributionManagement>
-settings.xml
+🔐 Configure settings.xml
 
-Location:
+Create file:
 
-~/.m2/settings.xml
+mkdir -p ~/.m2
+nano ~/.m2/settings.xml
+
+Paste:
+
 <settings>
   <servers>
     <server>
       <id>nexus</id>
       <username>admin</username>
-      <password>YOUR_PASSWORD</password>
+      <password>YourPassword</password>
     </server>
   </servers>
 </settings>
-Build and Deploy
-Snapshot Deployment
+🚀 Deploy Snapshot Artifact
 
 Set version in pom.xml
 
@@ -130,11 +179,10 @@ Run:
 
 mvn clean deploy
 
-Result:
+Artifact uploaded to:
 
-Artifact uploaded to company-snapshot
-
-Release Deployment
+company-snapshot
+🚀 Deploy Release Artifact
 
 Change version:
 
@@ -144,13 +192,14 @@ Run:
 
 mvn clean deploy
 
-Result:
+Artifact uploaded to:
 
-Artifact uploaded to company-release
+company-release
+✅ Verify in Nexus
 
-Validation
+Go to:
 
-In Nexus UI -> Browse
+Browse
 
 Verify:
 
@@ -161,55 +210,56 @@ maven-metadata.xml
 company-release
 myapp-1.0.0.jar
 myapp-1.0.0.pom
-Errors Faced During Implementation and Resolutions
-1. Snapshot Deployment Failed
+🐞 Issues Faced and How I Solved Them
+1. Snapshot Deploy Failed
 Error
 Could not find artifact myapp:myapp:pom:1.0.0-<timestamp>
-Root Cause
+Cause
 
-Snapshot repository was created with incorrect settings.
+Snapshot repository was created with incorrect configuration.
 
-Resolution
+Solution
 
-Recreated repository with:
+Deleted and recreated repository with:
 
-Version Policy: Snapshot
-Deployment Policy: Allow redeploy
+Version Policy = Snapshot
+Deployment Policy = Allow redeploy
 Result
 
-Snapshot deployment completed successfully.
+Deployment successful.
 
-2. Release Deployment Failed
+2. Release Deploy Failed
 Error
 Could not find artifact myapp:myapp:pom:1.0.0
-Root Cause
+Cause
 
 Release repository had incorrect settings.
 
-Resolution
+Solution
 
-Recreated repository with:
+Deleted and recreated repository with:
 
-Version Policy: Release
-Deployment Policy: Allow redeploy
+Version Policy = Release
+Deployment Policy = Allow redeploy
 Result
 
-Release deployment completed successfully.
+Deployment successful.
 
 3. Missing settings.xml
 Error
 /home/ubuntu/.m2/settings.xml: No such file or directory
-Root Cause
+Cause
 
-Credentials were configured for root user, but build was executed using ubuntu user.
+Maven config was missing for ubuntu user.
 
-Resolution
+Solution
 
 Created:
 
-~/.m2/settings.xml
+mkdir -p ~/.m2
+nano ~/.m2/settings.xml
 
-Added Nexus credentials.
+Added credentials.
 
 Result
 
@@ -218,45 +268,40 @@ Authentication successful.
 4. Failed to Delete target Directory
 Error
 Failed to delete target/test-classes
-Root Cause
+Cause
 
-Previous build was executed as root user.
+Previous build executed as root user.
 
-Resolution
+Solution
 sudo chown -R ubuntu:ubuntu ~/myapp
 rm -rf ~/myapp/target
 Result
 
-Build completed successfully.
+Build successful.
 
-Key Learnings
-Installed Nexus on Ubuntu
-Ran Nexus using Docker
-Created Snapshot and Release repositories
-Integrated Maven with Nexus
-Deployed artifacts successfully
-Solved real-time deployment issues
-Learned repository policies and permissions
-Real-World Usage
-Developers publish Snapshot builds regularly
-QA team tests latest builds
-Release team uses stable versions
-Jenkins automates deployment to Nexus
-Resume Points
-Configured Sonatype Nexus Repository on Ubuntu using Docker
-Created and managed Snapshot and Release repositories
-Integrated Maven builds with Nexus credentials
-Deployed Java artifacts to internal repositories
-Troubleshot Maven deployment and Linux permission issues
-Gained hands-on experience in artifact management
-Future Enhancements
-Integrate Jenkins Pipeline
-Host Docker Images in Nexus
-Configure Role-Based Access Control
-Use Proxy Repositories
-Implement Backup Strategy
-Conclusion
+📚 Topics Covered
+What is Nexus
+Why Nexus is used
+GitHub vs Nexus
+AWS EC2 Ubuntu 22.04 Setup
+Security Group Configuration
+SSH Connection
+Linux Updates
+Java Installation
+Docker Installation
+Nexus Docker Setup
+Nexus Login
+Repository Creation
+Maven Installation
+Maven Project Setup
+pom.xml Configuration
+settings.xml Configuration
+Snapshot Deployment
+Release Deployment
+Verification in Nexus
+Troubleshooting Real Errors
+🎯 Conclusion
 
-This project provided real-time hands-on experience in artifact management using Sonatype Nexus Repository.
+This project provided complete hands-on experience with Sonatype Nexus Repository in a real-world environment using AWS Ubuntu Server.
 
-It helped me understand both implementation and troubleshooting, which is highly valuable for DevOps, CI/CD, and Build Engineer roles.
+I learned how to install, configure, deploy artifacts, troubleshoot issues, and manage repositories, which are essential skills for DevOps, CI/CD, and Build Release Engineer roles.
